@@ -1,0 +1,368 @@
+---
+import '../styles/global.css';
+import {
+  languages,
+  defaultLanguage,
+  languageNames,
+} from '../data/i18n';
+
+const defaultCopy = languages[defaultLanguage];
+const translationsPayload = JSON.stringify(languages);
+---
+
+<!DOCTYPE html>
+<html lang={defaultLanguage} data-default-lang={defaultLanguage}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Restaurante Marinheiro's</title>
+    <meta
+      name="description"
+      content="Landing page minimalista do Restaurante Marinheiro's com acesso rápido ao menu."
+    />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='48' fill='%235c4227'/><path d='M50 20 L60 50 L50 80 L40 50 Z' fill='%23f8efe7'/></svg>" />
+  </head>
+  <body>
+    <main class="page" aria-label="Landing do Restaurante Marinheiro's">
+      <div class="glow-layer glow-layer--one" aria-hidden="true"></div>
+      <div class="glow-layer glow-layer--two" aria-hidden="true"></div>
+
+      <div class="language-control">
+        <label for="language-select" class="language-control__label" data-i18n-key="languageLabel">
+          {defaultCopy.languageLabel}
+        </label>
+        <div class="language-control__select">
+          <span
+            class="language-control__flag"
+            aria-hidden="true"
+            data-language-flag
+          >
+            🇧🇷
+          </span>
+          <select id="language-select" name="language" data-language-select aria-label={defaultCopy.languageLabel}>
+            {Object.entries(languageNames).map(([lang, label]) => (
+              <option value={lang} selected={lang === defaultLanguage}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <section class="hero" aria-live="polite">
+        <h1 class="hero__title">
+          <span class="sr-only">
+            <span data-i18n-key="brandLine1">{defaultCopy.brandLine1}</span>
+            <span data-i18n-key="brandLine2">{defaultCopy.brandLine2}</span>
+          </span>
+          <img
+            src="/logo.svg"
+            alt="Logo do Restaurante Marinheiro's"
+            class="hero__logo"
+            width="220"
+            height="220"
+            loading="lazy"
+            decoding="async"
+          />
+        </h1>
+        <p class="hero__eyebrow" data-i18n-key="eyebrow">{defaultCopy.eyebrow}</p>
+        <a
+          class="hero__cta"
+          href="/menu"
+          data-i18n-key="buttonLabel"
+          data-i18n-aria="buttonAria"
+          aria-label={defaultCopy.buttonAria}
+        >
+          {defaultCopy.buttonLabel}
+        </a>
+      </section>
+
+      <footer class="hero__footer">
+        <p data-i18n-key="phone">{defaultCopy.phone}</p>
+        <p data-i18n-key="address">{defaultCopy.address}</p>
+      </footer>
+    </main>
+
+    <script
+      type="application/json"
+      id="marinheiros-translations"
+      set:html={translationsPayload}
+    ></script>
+    <script type="module">
+      const translationsEl = document.getElementById('marinheiros-translations');
+      let translations = {};
+      try {
+        translations = translationsEl ? JSON.parse(translationsEl.textContent) : {};
+      } catch (error) {
+        console.error('Erro ao carregar traduções', error);
+      }
+      const defaultLanguage = document.documentElement.dataset.defaultLang || 'pt';
+
+      const select = document.querySelector('[data-language-select]');
+      const textNodes = document.querySelectorAll('[data-i18n-key]');
+      const ariaNodes = document.querySelectorAll('[data-i18n-aria]');
+      const flagContainer = document.querySelector('[data-language-flag]');
+
+      const applyLanguage = (lang) => {
+        const nextLang = translations[lang] ? lang : defaultLanguage;
+        const copy = translations[nextLang] || {};
+        document.documentElement.lang = nextLang;
+
+        textNodes.forEach((node) => {
+          const key = node.getAttribute('data-i18n-key');
+          if (!key || !(key in copy)) return;
+          node.textContent = copy[key];
+        });
+
+        ariaNodes.forEach((node) => {
+          const key = node.getAttribute('data-i18n-aria');
+          if (!key || !(key in copy)) return;
+          node.setAttribute('aria-label', copy[key]);
+        });
+
+        if (flagContainer) {
+          const map = {
+            pt: '🇧🇷',
+            en: '🇺🇸',
+            es: '🇪🇸',
+          };
+          flagContainer.textContent = map[nextLang] || '🌐';
+        }
+      };
+
+      const normalizeLang = (lang) => {
+        if (!lang || typeof lang !== 'string') return null;
+        const lower = lang.toLowerCase();
+        if (translations[lower]) return lower;
+        const short = lower.split('-')[0];
+        return translations[short] ? short : null;
+      };
+
+      const readStoredLanguage = () => {
+        try {
+          return localStorage.getItem('marinheiros:lang');
+        } catch (error) {
+          return null;
+        }
+      };
+
+      const writeStoredLanguage = (lang) => {
+        try {
+          localStorage.setItem('marinheiros:lang', lang);
+        } catch (error) {
+          /* ignore */
+        }
+      };
+
+      const resolveInitialLanguage = () => {
+        const stored = readStoredLanguage();
+        if (stored) {
+          const normalized = normalizeLang(stored);
+          if (normalized) return normalized;
+        }
+
+        const candidates = Array.isArray(navigator.languages) && navigator.languages.length
+          ? navigator.languages
+          : navigator.language
+            ? [navigator.language]
+            : [];
+
+        for (const candidate of candidates) {
+          const normalized = normalizeLang(candidate);
+          if (normalized) return normalized;
+        }
+
+        return defaultLanguage;
+      };
+
+      if (select) {
+        const initial = resolveInitialLanguage();
+        applyLanguage(initial);
+        select.value = initial;
+
+        select.addEventListener('change', (event) => {
+          const lang = normalizeLang(event.target.value) || defaultLanguage;
+          writeStoredLanguage(lang);
+          applyLanguage(lang);
+        });
+      }
+    </script>
+
+    <style>
+      .page {
+        position: relative;
+        isolation: isolate;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: space-between;
+        text-align: center;
+        width: 100%;
+        padding: 2rem 1.5rem 1.75rem;
+        min-height: 100vh;
+        min-height: 100dvh;
+      }
+
+      .glow-layer {
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        opacity: 0.32;
+        background: radial-gradient(circle at 20% 20%, rgba(210, 170, 130, 0.16), transparent 45%),
+          radial-gradient(circle at 80% 30%, rgba(190, 150, 105, 0.12), transparent 50%);
+        filter: blur(48px);
+      }
+
+      .glow-layer--two {
+        opacity: 0.2;
+        background: radial-gradient(circle at 50% 80%, rgba(78, 50, 28, 0.65), transparent 55%);
+      }
+
+      .language-control {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.85rem;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: rgba(240, 214, 186, 0.92);
+      }
+
+      .language-control__label {
+        font-weight: 600;
+      }
+
+      .language-control__select {
+        background: rgba(88, 58, 35, 0.55);
+        border: 1px solid rgba(248, 239, 231, 0.2);
+        border-radius: 999px;
+        padding: 0.2rem 0.75rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        box-shadow: inset 0 1px 2px rgba(13, 8, 4, 0.35);
+      }
+
+      .language-control__flag {
+        font-size: 1rem;
+        line-height: 1;
+        filter: drop-shadow(0 2px 4px rgba(13, 8, 4, 0.35));
+      }
+
+      select {
+        background: transparent;
+        border: none;
+        color: rgba(240, 214, 186, 0.92);
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        appearance: none;
+        outline: none;
+        text-align: center;
+        text-align-last: center;
+      }
+
+      .hero {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: center;
+        gap: 1.25rem;
+        padding-top: clamp(2.55rem, 10.1vh, 6.75rem);
+        padding-bottom: clamp(1.85rem, 7.6vh, 3.4rem);
+      }
+
+      .hero__eyebrow {
+        font-size: 0.85rem;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: #f0d1a0;
+      }
+
+      .hero__title {
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      .hero__logo {
+        width: clamp(160px, 60vw, 240px);
+        height: auto;
+        filter: drop-shadow(0 25px 45px rgba(13, 8, 4, 0.55));
+      }
+
+      .hero__cta {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 12rem;
+        padding: 0.9rem 1.8rem;
+        border-radius: 999px;
+        border: none;
+        background: linear-gradient(135deg, #f5d7ac, #f8efe7);
+        color: #3c2617;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        transition: background 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+        box-shadow: 0 18px 38px rgba(13, 8, 4, 0.45);
+        text-decoration: none;
+      }
+
+      .hero__cta:hover,
+      .hero__cta:focus-visible {
+        background: linear-gradient(135deg, #f8efe7, #f5d7ac);
+        transform: translateY(-2px);
+      }
+
+      .hero__footer {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        font-size: 0.95rem;
+        letter-spacing: 0.05em;
+        color: rgba(237, 209, 180, 0.85);
+      }
+
+      .hero__footer p {
+        margin: 0;
+      }
+
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        border: 0;
+      }
+
+      @media (min-width: 768px) {
+        .page {
+          padding: 3rem 3rem 2.25rem;
+        }
+
+        .language-control {
+          font-size: 0.9rem;
+        }
+
+        .hero__logo {
+          width: clamp(240px, 25vw, 360px);
+        }
+
+        .hero__footer {
+          flex-direction: row;
+          justify-content: center;
+          gap: 1.5rem;
+        }
+      }
+    </style>
+  </body>
+</html>

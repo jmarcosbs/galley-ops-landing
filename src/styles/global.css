@@ -1,0 +1,52 @@
+:root {
+  color-scheme: dark;
+  font-family: 'Inter', 'Manrope', 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --brown-900: #0d0804;
+  --brown-700: #2b1a0f;
+  --brown-500: #5c4227;
+  --sand-200: #f8efe7;
+  --sand-400: #e4d7c9;
+  --text-primary: rgba(236, 216, 191, 0.95);
+  --text-muted: rgba(236, 216, 191, 0.65);
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+}
+
+body {
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow: hidden;
+  display: flex;
+  align-items: stretch;
+  font-family: inherit;
+  background: linear-gradient(135deg, #0d0804, #27160b, #4c2e18);
+  background-size: 220% 220%;
+  animation: gradientFlow 16s ease-in-out infinite;
+  color: var(--text-primary);
+}
+
+@keyframes gradientFlow {
+  0% {
+    background-position: 0% 0%;
+  }
+  50% {
+    background-position: 100% 100%;
+  }
+  100% {
+    background-position: 0% 0%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body {
+    animation: none;
+  }
+}

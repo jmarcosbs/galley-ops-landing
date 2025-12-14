@@ -1,0 +1,529 @@
+---
+import '../styles/global.css';
+
+const menuEndpoint =
+  import.meta.env.PUBLIC_MENU_API ?? 'http://localhost:8002/api/menu/';
+const heroCopy = {
+  title: "Marinheiro's",
+};
+---
+
+<!DOCTYPE html>
+<html lang="pt">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Menu | Restaurante Marinheiro's</title>
+    <meta
+      name="description"
+      content="Conheça o menu completo do Restaurante Marinheiro's organizado por categorias."
+    />
+  </head>
+  <body class="menu-layout" data-menu-endpoint={menuEndpoint}>
+    <header class="menu-hero">
+      <div class="menu-hero__content">
+        <p class="menu-hero__eyebrow">Cardápio</p>
+        <h1 class="menu-hero__title">{heroCopy.title}</h1>
+      </div>
+      <a class="menu-hero__link" href="/">Voltar</a>
+    </header>
+
+    <nav class="menu-tabs" data-menu-nav aria-label="Categorias do cardápio">
+      <span role="link" tabindex="0" class="menu-tab menu-tab--active">Tudo</span>
+    </nav>
+    <p class="menu-tab-hint">
+      Arraste para ver mais <span aria-hidden="true">→</span>
+    </p>
+
+    <section class="menu-status" data-menu-status aria-live="polite"></section>
+
+    <section class="menu-groups" data-menu-root aria-live="polite"></section>
+
+    <template id="menu-item-template">
+      <article class="menu-item">
+        <div class="menu-item__header">
+          <h3></h3>
+          <span class="menu-item__price"></span>
+        </div>
+        <p class="menu-item__description"></p>
+        <div class="menu-item__meta"></div>
+      </article>
+    </template>
+
+    <script type="module">
+      const endpoint = document.body?.dataset.menuEndpoint;
+      const root = document.querySelector('[data-menu-root]');
+      const statusEl = document.querySelector('[data-menu-status]');
+      const nav = document.querySelector('[data-menu-nav]');
+      const template = document.getElementById('menu-item-template');
+      let state = [];
+
+      const buildPublicMenuUrl = () => {
+        if (!endpoint) return null;
+        try {
+          const url = new URL(endpoint, window.location.origin);
+          url.searchParams.set('public_only', 'true');
+          return url.toString();
+        } catch (error) {
+          console.warn('Não foi possível analisar o endpoint como URL. Reaproveitando string original.', error);
+          const separator = endpoint.includes('?') ? '&' : '?';
+          return `${endpoint}${separator}public_only=true`;
+        }
+      };
+
+      const filterMenuForPublicDisplay = (menuPayload) => {
+        if (!Array.isArray(menuPayload)) return [];
+        return menuPayload
+          .map((entry) => {
+            const items = Array.isArray(entry?.items)
+              ? entry.items.filter((dish) => {
+                  if (!dish || typeof dish !== 'object') return false;
+                  if ('show_on_public_menu' in dish) {
+                    return !!dish.show_on_public_menu;
+                  }
+                  return true;
+                })
+              : [];
+            return { ...entry, items };
+          })
+          .filter((entry) => entry.items.length > 0);
+      };
+
+      const formatCurrency = (value) => {
+        const normalized =
+          typeof value === 'number' ? value : parseFloat(value ?? '0');
+        if (!Number.isFinite(normalized)) return '';
+        return new Intl.NumberFormat('pt-BR', {
+          style: 'currency',
+          currency: 'BRL',
+          minimumFractionDigits: 2,
+        }).format(normalized);
+      };
+
+      const createItemElement = (dish) => {
+        const node = template.content.firstElementChild.cloneNode(true);
+        node.querySelector('h3').textContent = dish.name;
+        node.querySelector('.menu-item__price').textContent = formatCurrency(
+          dish.price
+        );
+        const descEl = node.querySelector('.menu-item__description');
+        if (dish.description) {
+          descEl.textContent = dish.description;
+        } else {
+          descEl.remove();
+        }
+
+        const meta = node.querySelector('.menu-item__meta');
+        meta.innerHTML = '';
+
+        if (!dish.is_available) {
+          node.setAttribute('data-unavailable', 'true');
+          const chip = document.createElement('span');
+          chip.className = 'chip chip--alert';
+          chip.textContent = 'Indisponível';
+          meta.appendChild(chip);
+        }
+
+        return node;
+      };
+
+      const generateId = (category) => {
+        return (
+          category?.category?.uuid ||
+          (crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2))
+        );
+      };
+
+      const renderMenu = () => {
+        if (!root) return;
+        root.innerHTML = '';
+        if (nav) {
+          nav.innerHTML = '';
+        }
+
+        if (!state.length) {
+          const empty = document.createElement('p');
+          empty.className = 'menu-empty';
+          empty.textContent =
+            'Nenhum prato encontrado no momento. Em instantes atualizamos o cardápio por aqui.';
+          root.appendChild(empty);
+          if (nav) {
+            const button = document.createElement('span');
+            button.role = 'link';
+            button.tabIndex = 0;
+            button.className = 'menu-tab menu-tab--active';
+            button.textContent = 'Tudo';
+            nav.appendChild(button);
+          }
+          return;
+        }
+
+        if (nav) {
+          const allButton = document.createElement('span');
+          allButton.role = 'link';
+          allButton.tabIndex = 0;
+          allButton.className = 'menu-tab menu-tab--active';
+          allButton.textContent = 'Tudo';
+          const scrollToTop = () => {
+            document
+              .querySelectorAll('.menu-tab')
+              .forEach((tab) => tab.classList.remove('menu-tab--active'));
+            allButton.classList.add('menu-tab--active');
+            window.scrollTo({ top: root.offsetTop - 40, behavior: 'smooth' });
+          };
+          allButton.addEventListener('click', scrollToTop);
+          allButton.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              scrollToTop();
+            }
+          });
+          nav.appendChild(allButton);
+        }
+
+        for (const category of state) {
+          const categoryId = `cat-${generateId(category)}`;
+          if (nav) {
+            const button = document.createElement('span');
+            button.role = 'link';
+            button.tabIndex = 0;
+            button.className = 'menu-tab';
+            button.textContent = category.category?.name ?? 'Categoria';
+            const scrollToCategory = () => {
+              document
+                .querySelectorAll('.menu-tab')
+                .forEach((tab) => tab.classList.remove('menu-tab--active'));
+              button.classList.add('menu-tab--active');
+              document
+                .getElementById(categoryId)
+                ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            };
+            button.addEventListener('click', scrollToCategory);
+            button.addEventListener('keydown', (event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                scrollToCategory();
+              }
+            });
+            nav.appendChild(button);
+          }
+
+          const article = document.createElement('article');
+          article.className = 'menu-category';
+          article.id = categoryId;
+          const header = document.createElement('header');
+          header.className = 'menu-category__header';
+          header.innerHTML = `
+            <div class="menu-category__badge" style="--badge-color: ${
+              category.category?.color || '#b07b52'
+            }"></div>
+            <div>
+              <h2>${category.category?.name ?? 'Categoria'}</h2>
+            </div>
+          `;
+          article.appendChild(header);
+
+          const list = document.createElement('div');
+          list.className = 'menu-category__items';
+          category.items.forEach((dish) => {
+            list.appendChild(createItemElement(dish));
+          });
+          article.appendChild(list);
+          root.appendChild(article);
+        }
+      };
+
+      const loadMenu = async () => {
+        if (!endpoint) {
+          console.error('PUBLIC_MENU_API não definido.');
+          statusEl.textContent = 'Configuração do menu ausente.';
+          return;
+        }
+        const requestUrl = buildPublicMenuUrl();
+        if (!requestUrl) {
+          statusEl.textContent = 'Configuração do menu ausente.';
+          return;
+        }
+        console.log('Carregando menu de', requestUrl);
+        statusEl.textContent = 'Carregando cardápio...';
+        try {
+          const response = await fetch(requestUrl, { headers: { Accept: 'application/json' } });
+          if (!response.ok) {
+            throw new Error('Falha ao consultar o cardápio.');
+          }
+          const payload = await response.json();
+          state = filterMenuForPublicDisplay(payload.menu);
+          statusEl.textContent = '';
+          renderMenu();
+        } catch (error) {
+          console.error(error);
+          statusEl.textContent =
+            'Não foi possível carregar o cardápio agora. Tente novamente em instantes.';
+        }
+      };
+
+      loadMenu();
+    </script>
+
+    <style>
+      .menu-layout {
+        min-height: 100vh;
+        min-height: 100dvh;
+        flex-direction: column;
+        padding: clamp(0.4rem, 1.5vw, 1rem) clamp(0.75rem, 4vw, 2rem) 2rem;
+        background: linear-gradient(180deg, #fdfbf8 0%, #f7f2ec 50%, #fdfbf8 100%);
+        color: #27170d;
+        overflow-y: auto;
+      }
+
+      .menu-layout::-webkit-scrollbar {
+        width: 10px;
+      }
+
+      .menu-layout::-webkit-scrollbar-track {
+        background: rgba(253, 251, 248, 0.6);
+        border-radius: 999px;
+      }
+
+      .menu-layout::-webkit-scrollbar-thumb {
+        background: rgba(146, 108, 78, 0.5);
+        border-radius: 999px;
+        border: 2px solid rgba(253, 251, 248, 0.6);
+      }
+
+      .menu-layout::-webkit-scrollbar-thumb:hover {
+        background: rgba(146, 108, 78, 0.7);
+      }
+
+      .menu-hero {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        justify-content: space-between;
+        padding-bottom: 1.25rem;
+        margin-bottom: 0;
+      }
+
+      .menu-hero__content {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .menu-hero__eyebrow {
+        text-transform: uppercase;
+        letter-spacing: 0.25em;
+        font-size: 0.72rem;
+        color: rgba(39, 23, 13, 0.65);
+        margin-bottom: 0.15rem;
+      }
+
+      .menu-hero__title {
+        margin: 0;
+        font-size: clamp(1.6rem, 5vw, 2.4rem);
+        line-height: 1.1;
+      }
+
+      .menu-hero__link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.2em;
+        border: 1px solid rgba(39, 23, 13, 0.2);
+        border-radius: 999px;
+        padding: 0.45rem 1rem;
+        text-decoration: none;
+        color: inherit;
+      }
+
+      :global(.menu-tabs) {
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        display: flex;
+        gap: 0.5rem;
+        overflow-x: auto;
+        padding: 0.4rem 0;
+        margin: 0 0 0.35rem;
+        background: rgba(253, 251, 248, 0.98);
+        scrollbar-width: none;
+      }
+
+      :global(.menu-tabs::-webkit-scrollbar) {
+        display: none;
+      }
+
+      :global(.menu-tab) {
+        border: 1px solid rgba(146, 108, 78, 0.35);
+        border-radius: 999px;
+        padding: 0.6rem 1.25rem;
+        background: #fff7ef;
+        color: #5a3923;
+        font-size: 0.76rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        white-space: nowrap;
+        transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease,
+          border-color 0.2s ease;
+      }
+
+      :global(.menu-tab--active) {
+        background: #2f1c11;
+        color: #fff5ea;
+        border-color: #2f1c11;
+      }
+
+      .menu-tab-hint {
+        margin: 0;
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 0.72rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: rgba(39, 23, 13, 0.45);
+      }
+
+      .menu-tab-hint span {
+        font-size: 0.85rem;
+      }
+
+      .menu-status {
+        margin: 0 0 1rem;
+        font-size: 0.8rem;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: rgba(39, 23, 13, 0.55);
+      }
+
+      .menu-groups {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+      }
+
+      .menu-category {
+        border-radius: 20px;
+        background: #fffcf8;
+        border: 1px solid rgba(37, 21, 12, 0.1);
+        padding: 1.15rem;
+        box-shadow: 0 20px 38px rgba(25, 13, 7, 0.12);
+      }
+
+      .menu-category__header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+      }
+
+      .menu-category__badge {
+        width: 30px;
+        height: 30px;
+        border-radius: 10px;
+        background: var(--badge-color, #c48754);
+        box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+      }
+
+      .menu-category__header h2 {
+        margin: 0;
+        font-size: 1.05rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .menu-category__items {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+      }
+
+      .menu-item {
+        padding: 1.25rem 1.45rem;
+        border-radius: 6px;
+        border: 1px solid rgba(37, 21, 12, 0.08);
+        border-left: 5px solid #a7673380;
+        background: #fffefd;
+        margin: 1rem 0;
+      }
+
+      .menu-item[data-unavailable='true'] {
+        opacity: 0.55;
+      }
+
+      .menu-item__header {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.5rem;
+        align-items: center;
+      }
+
+      .menu-item__header h3 {
+        margin: 0;
+        font-size: 1rem;
+      }
+
+      .menu-item__price {
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: #6b3f1f;
+      }
+
+      .menu-item__description {
+        margin: 0.35rem 0 0.75rem;
+        font-size: 0.9rem;
+        color: rgba(37, 21, 12, 0.72);
+      }
+
+      .menu-item__meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        margin-top: 0.35rem;
+      }
+
+      .chip {
+        border-radius: 999px;
+        padding: 0.25rem 0.65rem;
+        font-size: 0.7rem;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        background: rgba(64, 36, 21, 0.08);
+      }
+
+      .chip--alert {
+        background: rgba(176, 56, 40, 0.18);
+        color: #8c2b19;
+      }
+
+      .menu-empty {
+        text-align: center;
+        padding: 2rem;
+        border-radius: 16px;
+        background: #fdf4eb;
+        border: 1px solid rgba(59, 37, 22, 0.1);
+        color: rgba(59, 37, 22, 0.7);
+      }
+
+      @media (min-width: 768px) {
+        .menu-panel {
+          align-items: flex-end;
+        }
+
+        .menu-category__items {
+          gap: 1rem;
+        }
+
+        .menu-item {
+          padding: 1.15rem 1.35rem;
+        }
+      }
+    </style>
+  </body>
+</html>
