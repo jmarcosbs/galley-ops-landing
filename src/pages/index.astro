@@ -5,9 +5,16 @@ import {
   defaultLanguage,
   languageNames,
 } from '../data/i18n';
+import { siteConfig, buildRestaurantSchema } from '../data/site';
 
 const defaultCopy = languages[defaultLanguage];
 const translationsPayload = JSON.stringify(languages);
+const structuredData = JSON.stringify(buildRestaurantSchema());
+const canonicalUrl = siteConfig.siteSections.home;
+const keywords = siteConfig.keywords.join(', ');
+const robotsContent =
+  'index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1';
+const ogImage = siteConfig.image;
 ---
 
 <!DOCTYPE html>
@@ -15,12 +22,28 @@ const translationsPayload = JSON.stringify(languages);
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Restaurante Marinheiro's</title>
-    <meta
-      name="description"
-      content="Landing page minimalista do Restaurante Marinheiro's com acesso rápido ao menu."
-    />
+    <title>{siteConfig.title}</title>
+    <meta name="description" content={siteConfig.description} />
+    <meta name="keywords" content={keywords} />
+    <meta name="robots" content={robotsContent} />
+    <meta name="theme-color" content={siteConfig.themeColor} />
+    <link rel="canonical" href={canonicalUrl} />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content={siteConfig.locale} />
+    <meta property="og:site_name" content={siteConfig.name} />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:title" content={siteConfig.title} />
+    <meta property="og:description" content={siteConfig.description} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:image:alt" content={siteConfig.ogImageAlt} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content={siteConfig.handle} />
+    <meta name="twitter:creator" content={siteConfig.handle} />
+    <meta name="twitter:title" content={siteConfig.title} />
+    <meta name="twitter:description" content={siteConfig.description} />
+    <meta name="twitter:image" content={ogImage} />
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='48' fill='%235c4227'/><path d='M50 20 L60 50 L50 80 L40 50 Z' fill='%23f8efe7'/></svg>" />
+    <script type="application/ld+json" is:inline set:html={structuredData}></script>
   </head>
   <body>
     <main class="page" aria-label="Landing do Restaurante Marinheiro's">
@@ -85,10 +108,11 @@ const translationsPayload = JSON.stringify(languages);
 
     <script
       type="application/json"
+      is:inline
       id="marinheiros-translations"
       set:html={translationsPayload}
     ></script>
-    <script type="module">
+    <script type="module" is:inline>
       const translationsEl = document.getElementById('marinheiros-translations');
       let translations = {};
       try {

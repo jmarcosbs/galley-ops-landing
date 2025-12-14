@@ -1,23 +1,54 @@
 ---
 import '../styles/global.css';
+import { siteConfig, buildMenuSchema } from '../data/site';
 
 const menuEndpoint =
   import.meta.env.PUBLIC_MENU_API ?? 'http://localhost:8002/api/menu/';
 const heroCopy = {
   title: "Marinheiro's",
 };
+const canonicalUrl = siteConfig.siteSections.menu;
+const menuMetaTitle = "Cardápio digital | Restaurante Marinheiro's em Florianópolis";
+const menuMetaDescription =
+  'Navegue pelo menu atualizado do Restaurante Marinheiro’s com pratos autorais, frutos do mar e bebidas especiais direto da Praia Brava.';
+const menuKeywords = [
+  'cardapio restaurante marinheiros',
+  'menu praia brava',
+  'restaurante frutos do mar florianopolis',
+].join(', ');
+const robotsContent =
+  'index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1';
+const structuredData = JSON.stringify(buildMenuSchema());
+const ogImage = siteConfig.image;
 ---
 
 <!DOCTYPE html>
-<html lang="pt">
+<html lang="pt-BR">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Menu | Restaurante Marinheiro's</title>
-    <meta
-      name="description"
-      content="Conheça o menu completo do Restaurante Marinheiro's organizado por categorias."
-    />
+    <title>{menuMetaTitle}</title>
+    <meta name="description" content={menuMetaDescription} />
+    <meta name="keywords" content={menuKeywords} />
+    <meta name="robots" content={robotsContent} />
+    <meta name="theme-color" content={siteConfig.themeColor} />
+    <link rel="canonical" href={canonicalUrl} />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content={siteConfig.locale} />
+    <meta property="og:site_name" content={siteConfig.name} />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:title" content={menuMetaTitle} />
+    <meta property="og:description" content={menuMetaDescription} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:image:alt" content={siteConfig.ogImageAlt} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content={siteConfig.handle} />
+    <meta name="twitter:creator" content={siteConfig.handle} />
+    <meta name="twitter:title" content={menuMetaTitle} />
+    <meta name="twitter:description" content={menuMetaDescription} />
+    <meta name="twitter:image" content={ogImage} />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='48' fill='%235c4227'/><path d='M50 20 L60 50 L50 80 L40 50 Z' fill='%23f8efe7'/></svg>" />
+    <script type="application/ld+json" is:inline set:html={structuredData}></script>
   </head>
   <body class="menu-layout" data-menu-endpoint={menuEndpoint}>
     <header class="menu-hero">
@@ -50,7 +81,7 @@ const heroCopy = {
       </article>
     </template>
 
-    <script type="module">
+    <script type="module" is:inline>
       const endpoint = document.body?.dataset.menuEndpoint;
       const root = document.querySelector('[data-menu-root]');
       const statusEl = document.querySelector('[data-menu-status]');
