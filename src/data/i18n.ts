@@ -1,5 +1,5 @@
 export const languages = {
-  pt: {
+  'pt-BR': {
     brandLine1: 'Restaurante',
     brandLine2: "Marinheiro's",
     eyebrow: 'Família no tempero. Amor no prato.',
@@ -9,8 +9,20 @@ export const languages = {
     handle: '@restaurantemarinheiros',
     phone: '(48) 3269-7295',
     address: 'Avenida Epitácio Bittencourt, 640. Praia Brava - Florianópolis - SC',
+    flag: '🇧🇷',
+    menuEyebrow: 'Cardápio',
+    menuHeroTitle: "Marinheiro's",
+    menuBack: 'Voltar',
+    menuAll: 'Tudo',
+    menuHint: 'Arraste para ver mais',
+    menuStatusLoading: 'Carregando cardápio...',
+    menuStatusError: 'Não foi possível carregar o cardápio agora. Tente novamente em instantes.',
+    menuStatusMissing: 'Configuração do menu ausente.',
+    menuEmpty: 'Nenhum prato encontrado no momento. Em instantes atualizamos o cardápio por aqui.',
+    menuUnavailable: 'Indisponível',
+    menuNavLabel: 'Categorias do cardápio',
   },
-  en: {
+  'en-US': {
     brandLine1: "Marinheiro's",
     brandLine2: 'Restaurant',
     eyebrow: 'Family in the seasoning. Love on the plate.',
@@ -20,10 +32,22 @@ export const languages = {
     handle: '@restaurantemarinheiros',
     phone: '+55 48 3269-7295',
     address: '640 Epitácio Bittencourt Ave. Praia Brava - Florianópolis - SC',
+    flag: '🇺🇸',
+    menuEyebrow: 'Menu',
+    menuHeroTitle: "Marinheiro's",
+    menuBack: 'Back',
+    menuAll: 'All',
+    menuHint: 'Swipe to see more',
+    menuStatusLoading: 'Loading menu...',
+    menuStatusError: 'Unable to load the menu right now. Please try again shortly.',
+    menuStatusMissing: 'Missing menu configuration.',
+    menuEmpty: 'No dishes available at the moment. We will refresh the menu shortly.',
+    menuUnavailable: 'Unavailable',
+    menuNavLabel: 'Menu categories',
   },
-  es: {
+  'es-ES': {
     brandLine1: 'Restaurante',
-    brandLine2: 'Marinheiro\'s',
+    brandLine2: "Marinheiro's",
     eyebrow: 'Familia en el sazón. Amor en el plato.',
     buttonLabel: 'Ver menú',
     buttonAria: 'Ir al menú principal',
@@ -31,14 +55,26 @@ export const languages = {
     handle: '@restaurantemarinheiros',
     phone: '(48) 3269-7295',
     address: 'Avenida Epitácio Bittencourt, 640. Praia Brava - Florianópolis - SC',
+    flag: '🇪🇸',
+    menuEyebrow: 'Menú',
+    menuHeroTitle: "Marinheiro's",
+    menuBack: 'Volver',
+    menuAll: 'Todo',
+    menuHint: 'Desliza para ver más',
+    menuStatusLoading: 'Cargando menú...',
+    menuStatusError: 'No pudimos cargar el menú ahora. Inténtalo de nuevo en unos instantes.',
+    menuStatusMissing: 'Falta la configuración del menú.',
+    menuEmpty: 'No hay platos disponibles por ahora. En breve actualizaremos el menú aquí.',
+    menuUnavailable: 'No disponible',
+    menuNavLabel: 'Categorías del menú',
   },
 } as const;
 
 export type Language = keyof typeof languages;
-export const defaultLanguage: Language = 'pt';
+export const defaultLanguage: Language = 'pt-BR';
 
 export const languageNames: Record<Language, string> = {
-  pt: 'Português',
-  en: 'English',
-  es: 'Español',
+  'pt-BR': 'Português (Brasil)',
+  'en-US': 'English',
+  'es-ES': 'Español',
 };

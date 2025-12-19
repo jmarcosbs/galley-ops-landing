@@ -60,7 +60,7 @@ const ogImage = siteConfig.image;
             aria-hidden="true"
             data-language-flag
           >
-            🇧🇷
+            {defaultCopy.flag}
           </span>
           <select id="language-select" name="language" data-language-select aria-label={defaultCopy.languageLabel}>
             {Object.entries(languageNames).map(([lang, label]) => (
@@ -120,15 +120,30 @@ const ogImage = siteConfig.image;
       } catch (error) {
         console.error('Erro ao carregar traduções', error);
       }
-      const defaultLanguage = document.documentElement.dataset.defaultLang || 'pt';
+      const defaultLanguage = document.documentElement.dataset.defaultLang || 'pt-BR';
 
       const select = document.querySelector('[data-language-select]');
       const textNodes = document.querySelectorAll('[data-i18n-key]');
       const ariaNodes = document.querySelectorAll('[data-i18n-aria]');
       const flagContainer = document.querySelector('[data-language-flag]');
+      const canonicalLanguageMap = new Map();
+
+      Object.keys(translations).forEach((code) => {
+        const lower = code.toLowerCase();
+        canonicalLanguageMap.set(lower, code);
+        const short = lower.split('-')[0];
+        if (!canonicalLanguageMap.has(short)) {
+          canonicalLanguageMap.set(short, code);
+        }
+      });
+
+      const resolveLanguage = (lang) => {
+        if (!lang || typeof lang !== 'string') return null;
+        return canonicalLanguageMap.get(lang.trim().toLowerCase()) || null;
+      };
 
       const applyLanguage = (lang) => {
-        const nextLang = translations[lang] ? lang : defaultLanguage;
+        const nextLang = resolveLanguage(lang) || defaultLanguage;
         const copy = translations[nextLang] || {};
         document.documentElement.lang = nextLang;
 
@@ -145,21 +160,10 @@ const ogImage = siteConfig.image;
         });
 
         if (flagContainer) {
-          const map = {
-            pt: '🇧🇷',
-            en: '🇺🇸',
-            es: '🇪🇸',
-          };
-          flagContainer.textContent = map[nextLang] || '🌐';
+          flagContainer.textContent = copy.flag || '🌐';
         }
-      };
 
-      const normalizeLang = (lang) => {
-        if (!lang || typeof lang !== 'string') return null;
-        const lower = lang.toLowerCase();
-        if (translations[lower]) return lower;
-        const short = lower.split('-')[0];
-        return translations[short] ? short : null;
+        return nextLang;
       };
 
       const readStoredLanguage = () => {
@@ -179,10 +183,9 @@ const ogImage = siteConfig.image;
       };
 
       const resolveInitialLanguage = () => {
-        const stored = readStoredLanguage();
+        const stored = resolveLanguage(readStoredLanguage());
         if (stored) {
-          const normalized = normalizeLang(stored);
-          if (normalized) return normalized;
+          return stored;
         }
 
         const candidates = Array.isArray(navigator.languages) && navigator.languages.length
@@ -192,23 +195,24 @@ const ogImage = siteConfig.image;
             : [];
 
         for (const candidate of candidates) {
-          const normalized = normalizeLang(candidate);
+          const normalized = resolveLanguage(candidate);
           if (normalized) return normalized;
         }
 
         return defaultLanguage;
       };
 
+      const initial = resolveInitialLanguage();
+      const applied = applyLanguage(initial);
       if (select) {
-        const initial = resolveInitialLanguage();
-        applyLanguage(initial);
-        select.value = initial;
-
+        select.value = applied;
         select.addEventListener('change', (event) => {
-          const lang = normalizeLang(event.target.value) || defaultLanguage;
+          const lang = resolveLanguage(event.target.value) || defaultLanguage;
           writeStoredLanguage(lang);
           applyLanguage(lang);
         });
+      } else {
+        applyLanguage(applied);
       }
     </script>
 

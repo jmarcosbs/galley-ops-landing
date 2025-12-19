@@ -1,11 +1,18 @@
 ---
 import '../styles/global.css';
+import {
+  languages,
+  defaultLanguage,
+  languageNames,
+} from '../data/i18n';
 import { siteConfig, buildMenuSchema } from '../data/site';
 
 const menuEndpoint =
   import.meta.env.PUBLIC_MENU_API ?? 'http://localhost:8002/api/menu/';
+const defaultCopy = languages[defaultLanguage];
+const translationsPayload = JSON.stringify(languages);
 const heroCopy = {
-  title: "Marinheiro's",
+  title: defaultCopy.menuHeroTitle,
 };
 const canonicalUrl = siteConfig.siteSections.menu;
 const menuMetaTitle = "Cardápio digital | Restaurante Marinheiro's em Florianópolis";
@@ -23,7 +30,7 @@ const ogImage = siteConfig.image;
 ---
 
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang={defaultLanguage} data-default-lang={defaultLanguage}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -51,19 +58,77 @@ const ogImage = siteConfig.image;
     <script type="application/ld+json" is:inline set:html={structuredData}></script>
   </head>
   <body class="menu-layout" data-menu-endpoint={menuEndpoint}>
+    <div class="menu-language-control">
+      <div class="language-control">
+        <label
+          for="menu-language-select"
+          class="language-control__label"
+          data-i18n-key="languageLabel"
+        >
+          {defaultCopy.languageLabel}
+        </label>
+        <div class="language-control__select">
+          <span
+            class="language-control__flag"
+            aria-hidden="true"
+            data-language-flag
+          >
+            {defaultCopy.flag}
+          </span>
+          <select
+            id="menu-language-select"
+            name="language"
+            data-language-select
+            data-i18n-aria="languageLabel"
+            aria-label={defaultCopy.languageLabel}
+          >
+            {Object.entries(languageNames).map(([lang, label]) => (
+              <option value={lang} selected={lang === defaultLanguage}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+    </div>
     <header class="menu-hero">
       <div class="menu-hero__content">
-        <p class="menu-hero__eyebrow">Cardápio</p>
-        <h1 class="menu-hero__title">{heroCopy.title}</h1>
+        <p class="menu-hero__eyebrow" data-i18n-key="menuEyebrow">
+          {defaultCopy.menuEyebrow}
+        </p>
+        <h1 class="menu-hero__title" data-i18n-key="menuHeroTitle">
+          {heroCopy.title}
+        </h1>
       </div>
-      <a class="menu-hero__link" href="/">Voltar</a>
+      <a
+        class="menu-hero__link"
+        href="/"
+        data-i18n-key="menuBack"
+        data-i18n-aria="menuBack"
+        aria-label={defaultCopy.menuBack}
+      >
+        {defaultCopy.menuBack}
+      </a>
     </header>
 
-    <nav class="menu-tabs" data-menu-nav aria-label="Categorias do cardápio">
-      <span role="link" tabindex="0" class="menu-tab menu-tab--active">Tudo</span>
+    <nav
+      class="menu-tabs"
+      data-menu-nav
+      aria-label={defaultCopy.menuNavLabel}
+      data-i18n-aria="menuNavLabel"
+    >
+      <span
+        role="link"
+        tabindex="0"
+        class="menu-tab menu-tab--active"
+        data-i18n-key="menuAll"
+      >
+        {defaultCopy.menuAll}
+      </span>
     </nav>
     <p class="menu-tab-hint">
-      Arraste para ver mais <span aria-hidden="true">→</span>
+      <span data-i18n-key="menuHint">{defaultCopy.menuHint}</span>
+      <span aria-hidden="true">→</span>
     </p>
 
     <section class="menu-status" data-menu-status aria-live="polite"></section>
@@ -81,24 +146,111 @@ const ogImage = siteConfig.image;
       </article>
     </template>
 
+    <script
+      type="application/json"
+      is:inline
+      id="marinheiros-translations"
+      set:html={translationsPayload}
+    ></script>
+
     <script type="module" is:inline>
+      const translationsEl = document.getElementById('marinheiros-translations');
+      let translations = {};
+      try {
+        translations = translationsEl ? JSON.parse(translationsEl.textContent) : {};
+      } catch (error) {
+        console.error('Erro ao carregar traduções', error);
+      }
+
+      const defaultLanguage = document.documentElement.dataset.defaultLang || 'pt-BR';
+      const canonicalLanguageMap = new Map();
+      Object.keys(translations).forEach((code) => {
+        const lower = code.toLowerCase();
+        canonicalLanguageMap.set(lower, code);
+        const short = lower.split('-')[0];
+        if (!canonicalLanguageMap.has(short)) {
+          canonicalLanguageMap.set(short, code);
+        }
+      });
+
+      const resolveLanguage = (lang) => {
+        if (!lang || typeof lang !== 'string') return null;
+        return canonicalLanguageMap.get(lang.trim().toLowerCase()) || null;
+      };
+
+      const readStoredLanguage = () => {
+        try {
+          return localStorage.getItem('marinheiros:lang');
+        } catch (error) {
+          return null;
+        }
+      };
+
+      const writeStoredLanguage = (lang) => {
+        try {
+          localStorage.setItem('marinheiros:lang', lang);
+        } catch (error) {
+          /* ignore */
+        }
+      };
+
+      const resolveInitialLanguage = () => {
+        const stored = resolveLanguage(readStoredLanguage());
+        if (stored) return stored;
+        const candidates = Array.isArray(navigator.languages) && navigator.languages.length
+          ? navigator.languages
+          : navigator.language
+            ? [navigator.language]
+            : [];
+        for (const candidate of candidates) {
+          const normalized = resolveLanguage(candidate);
+          if (normalized) return normalized;
+        }
+        return defaultLanguage;
+      };
+
       const endpoint = document.body?.dataset.menuEndpoint;
       const root = document.querySelector('[data-menu-root]');
       const statusEl = document.querySelector('[data-menu-status]');
       const nav = document.querySelector('[data-menu-nav]');
       const template = document.getElementById('menu-item-template');
-      let state = [];
+      const select = document.querySelector('[data-language-select]');
+      const flagContainer = document.querySelector('[data-language-flag]');
+      const textNodes = document.querySelectorAll('[data-i18n-key]');
+      const ariaNodes = document.querySelectorAll('[data-i18n-aria]');
 
-      const buildPublicMenuUrl = () => {
+      let currentLanguage = resolveInitialLanguage();
+      let currentCopy = translations[currentLanguage] || translations[defaultLanguage] || {};
+      let state = [];
+      let loadToken = 0;
+
+      const applyLanguageToDom = () => {
+        document.documentElement.lang = currentLanguage;
+        textNodes.forEach((node) => {
+          const key = node.getAttribute('data-i18n-key');
+          if (!key || !(key in currentCopy)) return;
+          node.textContent = currentCopy[key];
+        });
+        ariaNodes.forEach((node) => {
+          const key = node.getAttribute('data-i18n-aria');
+          if (!key || !(key in currentCopy)) return;
+          node.setAttribute('aria-label', currentCopy[key]);
+        });
+        if (flagContainer) {
+          flagContainer.textContent = currentCopy.flag || '🌐';
+        }
+      };
+
+      const buildPublicMenuUrl = (targetLang) => {
         if (!endpoint) return null;
         try {
           const url = new URL(endpoint, window.location.origin);
           url.searchParams.set('public_only', 'true');
+          url.searchParams.set('lang', targetLang);
           return url.toString();
         } catch (error) {
-          console.warn('Não foi possível analisar o endpoint como URL. Reaproveitando string original.', error);
           const separator = endpoint.includes('?') ? '&' : '?';
-          return `${endpoint}${separator}public_only=true`;
+          return `${endpoint}${separator}public_only=true&lang=${encodeURIComponent(targetLang)}`;
         }
       };
 
@@ -124,7 +276,7 @@ const ogImage = siteConfig.image;
         const normalized =
           typeof value === 'number' ? value : parseFloat(value ?? '0');
         if (!Number.isFinite(normalized)) return '';
-        return new Intl.NumberFormat('pt-BR', {
+        return new Intl.NumberFormat(currentLanguage || 'pt-BR', {
           style: 'currency',
           currency: 'BRL',
           minimumFractionDigits: 2,
@@ -132,6 +284,9 @@ const ogImage = siteConfig.image;
       };
 
       const createItemElement = (dish) => {
+        if (!template?.content?.firstElementChild) {
+          return document.createElement('article');
+        }
         const node = template.content.firstElementChild.cloneNode(true);
         node.querySelector('h3').textContent = dish.name;
         node.querySelector('.menu-item__price').textContent = formatCurrency(
@@ -151,7 +306,7 @@ const ogImage = siteConfig.image;
           node.setAttribute('data-unavailable', 'true');
           const chip = document.createElement('span');
           chip.className = 'chip chip--alert';
-          chip.textContent = 'Indisponível';
+          chip.textContent = currentCopy.menuUnavailable || '';
           meta.appendChild(chip);
         }
 
@@ -176,6 +331,7 @@ const ogImage = siteConfig.image;
           const empty = document.createElement('p');
           empty.className = 'menu-empty';
           empty.textContent =
+            currentCopy.menuEmpty ||
             'Nenhum prato encontrado no momento. Em instantes atualizamos o cardápio por aqui.';
           root.appendChild(empty);
           if (nav) {
@@ -183,7 +339,7 @@ const ogImage = siteConfig.image;
             button.role = 'link';
             button.tabIndex = 0;
             button.className = 'menu-tab menu-tab--active';
-            button.textContent = 'Tudo';
+            button.textContent = currentCopy.menuAll || 'Tudo';
             nav.appendChild(button);
           }
           return;
@@ -194,13 +350,13 @@ const ogImage = siteConfig.image;
           allButton.role = 'link';
           allButton.tabIndex = 0;
           allButton.className = 'menu-tab menu-tab--active';
-          allButton.textContent = 'Tudo';
+          allButton.textContent = currentCopy.menuAll || 'Tudo';
           const scrollToTop = () => {
             document
               .querySelectorAll('.menu-tab')
               .forEach((tab) => tab.classList.remove('menu-tab--active'));
             allButton.classList.add('menu-tab--active');
-            window.scrollTo({ top: root.offsetTop - 40, behavior: 'smooth' });
+            window.scrollTo({ top: (root.offsetTop || 0) - 40, behavior: 'smooth' });
           };
           allButton.addEventListener('click', scrollToTop);
           allButton.addEventListener('keydown', (event) => {
@@ -219,7 +375,7 @@ const ogImage = siteConfig.image;
             button.role = 'link';
             button.tabIndex = 0;
             button.className = 'menu-tab';
-            button.textContent = category.category?.name ?? 'Categoria';
+            button.textContent = category.category?.name ?? '';
             const scrollToCategory = () => {
               document
                 .querySelectorAll('.menu-tab')
@@ -249,7 +405,7 @@ const ogImage = siteConfig.image;
               category.category?.color || '#b07b52'
             }"></div>
             <div>
-              <h2>${category.category?.name ?? 'Categoria'}</h2>
+              <h2>${category.category?.name ?? ''}</h2>
             </div>
           `;
           article.appendChild(header);
@@ -264,36 +420,65 @@ const ogImage = siteConfig.image;
         }
       };
 
-      const loadMenu = async () => {
-        if (!endpoint) {
-          console.error('PUBLIC_MENU_API não definido.');
-          statusEl.textContent = 'Configuração do menu ausente.';
+      const loadMenu = async (targetLang = currentLanguage) => {
+        const copy = translations[targetLang] || translations[defaultLanguage] || {};
+        if (!statusEl) {
           return;
         }
-        const requestUrl = buildPublicMenuUrl();
+        if (!endpoint) {
+          statusEl.textContent = copy.menuStatusMissing || '';
+          return;
+        }
+        const token = ++loadToken;
+        const requestUrl = buildPublicMenuUrl(targetLang);
         if (!requestUrl) {
-          statusEl.textContent = 'Configuração do menu ausente.';
+          if (token === loadToken && targetLang === currentLanguage) {
+            statusEl.textContent = copy.menuStatusMissing || '';
+          }
           return;
         }
         console.log('Carregando menu de', requestUrl);
-        statusEl.textContent = 'Carregando cardápio...';
+        statusEl.textContent = copy.menuStatusLoading || '';
         try {
           const response = await fetch(requestUrl, { headers: { Accept: 'application/json' } });
           if (!response.ok) {
             throw new Error('Falha ao consultar o cardápio.');
           }
           const payload = await response.json();
+          if (token !== loadToken || targetLang !== currentLanguage) return;
           state = filterMenuForPublicDisplay(payload.menu);
           statusEl.textContent = '';
           renderMenu();
         } catch (error) {
           console.error(error);
+          if (token !== loadToken || targetLang !== currentLanguage) return;
           statusEl.textContent =
+            copy.menuStatusError ||
             'Não foi possível carregar o cardápio agora. Tente novamente em instantes.';
         }
       };
 
-      loadMenu();
+      const setLanguage = (lang, { persist = true } = {}) => {
+        const resolved = resolveLanguage(lang) || defaultLanguage;
+        currentLanguage = resolved;
+        currentCopy = translations[resolved] || translations[defaultLanguage] || {};
+        if (persist) {
+          writeStoredLanguage(resolved);
+        }
+        applyLanguageToDom();
+        if (select) {
+          select.value = resolved;
+        }
+        loadMenu(resolved);
+      };
+
+      if (select) {
+        select.addEventListener('change', (event) => {
+          setLanguage(event.target.value);
+        });
+      }
+
+      setLanguage(currentLanguage, { persist: false });
     </script>
 
     <style>
@@ -305,6 +490,56 @@ const ogImage = siteConfig.image;
         background: linear-gradient(180deg, #fdfbf8 0%, #f7f2ec 50%, #fdfbf8 100%);
         color: #27170d;
         overflow-y: auto;
+      }
+
+      .menu-language-control {
+        width: 100%;
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: 0.5rem;
+      }
+
+      .language-control {
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
+        font-size: 0.78rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: rgba(39, 23, 13, 0.75);
+      }
+
+      .language-control__label {
+        font-weight: 600;
+      }
+
+      .language-control__select {
+        background: #ffffff;
+        border: 1px solid rgba(39, 23, 13, 0.18);
+        border-radius: 999px;
+        padding: 0.25rem 0.85rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.08);
+      }
+
+      .language-control__flag {
+        font-size: 1.1rem;
+        line-height: 1;
+      }
+
+      .language-control select {
+        background: transparent;
+        border: none;
+        color: inherit;
+        font-size: 0.78rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        appearance: none;
+        outline: none;
+        cursor: pointer;
       }
 
       .menu-layout::-webkit-scrollbar {
