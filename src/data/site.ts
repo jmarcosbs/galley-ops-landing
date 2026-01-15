@@ -1,4 +1,6 @@
-const FALLBACK_URL = 'https://restaurantemarinheiros.com.br';
+import { brandInfo, brandMenu } from './brand';
+
+const FALLBACK_URL = 'https://example.galleyops.com';
 
 const normalizeUrl = (value: string) => {
   try {
@@ -24,42 +26,25 @@ const restaurantId = `${normalizedSiteUrl}#restaurant`;
 const menuId = `${normalizedSiteUrl}/menu#menu`;
 
 export const siteConfig = {
-  name: "Restaurante Marinheiro's",
-  shortName: "Marinheiro's",
-  tagline: 'Família no tempero. Amor no prato.',
-  title: "Restaurante Marinheiro's | Gastronomia autoral na Praia Brava",
-  description:
-    "Restaurante familiar na Praia Brava em Florianópolis com pratos autorais, frutos do mar frescos e atendimento acolhedor. Confira o cardápio digital e venha nos visitar.",
-  keywords: [
-    'Restaurante Marinheiro',
-    'restaurante Praia Brava',
-    'frutos do mar Florianópolis',
-    'restaurante familiar Florianópolis',
-    'cardápio digital restaurante',
-  ],
-  handle: '@restaurantemarinheiros',
+  name: brandInfo.name,
+  shortName: brandInfo.shortName,
+  tagline: brandInfo.tagline,
+  title: `${brandInfo.name} | ${brandInfo.titleSuffix}`,
+  description: brandInfo.description,
+  keywords: brandInfo.keywords,
+  handle: brandInfo.handle,
   locale: 'pt-BR',
   alternateLocales: ['en-US', 'es-ES'],
   siteUrl: normalizedSiteUrl,
   themeColor: '#1b120a',
-  image: absoluteUrl('/logo.png'),
-  ogImageAlt: "Marca do Restaurante Marinheiro's",
-  telephone: '+55 48 3269-7295',
-  priceRange: '$$',
-  cuisines: ['Culinária brasileira', 'Frutos do mar', 'Pratos autorais'],
-  address: {
-    street: 'Avenida Epitácio Bittencourt, 640',
-    neighborhood: 'Praia Brava',
-    locality: 'Florianópolis',
-    region: 'SC',
-    postalCode: '88056-780',
-    country: 'BR',
-  },
-  geo: {
-    latitude: -27.3987629,
-    longitude: -48.4191731,
-  },
-  sameAs: ['https://www.instagram.com/restaurantemarinheiros'],
+  image: absoluteUrl(brandInfo.imagePath),
+  ogImageAlt: brandInfo.ogImageAlt || `Marca do ${brandInfo.shortName}`,
+  telephone: brandInfo.phone,
+  priceRange: brandInfo.priceRange,
+  cuisines: brandInfo.cuisines,
+  address: brandInfo.address,
+  geo: brandInfo.geo,
+  sameAs: brandInfo.socialLinks,
   siteSections: {
     home: normalizedSiteUrl,
     menu: absoluteUrl('/menu'),
@@ -80,12 +65,16 @@ export const buildRestaurantSchema = () => {
     telephone: siteConfig.telephone,
     servesCuisine: siteConfig.cuisines,
     sameAs: siteConfig.sameAs,
-    areaServed: ['Praia Brava', 'Florianópolis'],
+    areaServed: [
+      siteConfig.address.neighborhood,
+      siteConfig.address.locality,
+      siteConfig.address.region,
+    ].filter(Boolean),
     menu: siteConfig.siteSections.menu,
     hasMenu: {
       '@type': 'Menu',
       '@id': menuId,
-      name: "Cardápio do Restaurante Marinheiro's",
+      name: `Cardápio do ${siteConfig.shortName}`,
       url: siteConfig.siteSections.menu,
     },
     address: {
@@ -98,7 +87,11 @@ export const buildRestaurantSchema = () => {
     },
   };
 
-  if (siteConfig.geo) {
+  const hasGeo =
+    typeof siteConfig.geo?.latitude === 'number' &&
+    typeof siteConfig.geo?.longitude === 'number';
+
+  if (hasGeo) {
     schema.geo = {
       '@type': 'GeoCoordinates',
       latitude: siteConfig.geo.latitude,
@@ -113,10 +106,9 @@ export const buildMenuSchema = () => ({
   '@context': 'https://schema.org',
   '@type': 'Menu',
   '@id': menuId,
-  name: "Cardápio do Restaurante Marinheiro's",
+  name: `Cardápio do ${siteConfig.shortName}`,
   inLanguage: 'pt-BR',
-  description:
-    'Selecione categorias e descubra pratos autorais, frutos do mar e opções vegetarianas preparados pela equipe Marinheiro’s.',
+  description: brandMenu.metaDescription,
   url: siteConfig.siteSections.menu,
   mainEntityOfPage: siteConfig.siteSections.menu,
   isPartOf: {

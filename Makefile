@@ -8,9 +8,10 @@ DIST_DIR := $(ASTRO_DIR)/dist
 NPM ?= npm
 SUDO ?= sudo
 
-NGINX_ROOT ?= /var/www/restaurantemarinheiros.com.br
-NGINX_CONF ?= /etc/nginx/sites-available/restaurantemarinheiros.com.br.conf
-NGINX_SITE ?= /etc/nginx/sites-enabled/restaurantemarinheiros.com.br.conf
+SITE_DOMAIN ?= example.galleyops.com
+NGINX_ROOT ?= /var/www/$(SITE_DOMAIN)
+NGINX_CONF ?= /etc/nginx/sites-available/$(SITE_DOMAIN).conf
+NGINX_SITE ?= /etc/nginx/sites-enabled/$(SITE_DOMAIN).conf
 
 install:
 	cd $(ASTRO_DIR) && $(NPM) install

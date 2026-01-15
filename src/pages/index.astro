@@ -46,7 +46,7 @@ const ogImage = siteConfig.image;
     <script type="application/ld+json" is:inline set:html={structuredData}></script>
   </head>
   <body>
-    <main class="page" aria-label="Landing do Restaurante Marinheiro's">
+    <main class="page" aria-label={`Landing do ${siteConfig.name}`}>
       <div class="glow-layer glow-layer--one" aria-hidden="true"></div>
       <div class="glow-layer glow-layer--two" aria-hidden="true"></div>
 
@@ -80,7 +80,7 @@ const ogImage = siteConfig.image;
           </span>
           <img
             src="/logo.svg"
-            alt="Logo do Restaurante Marinheiro's"
+            alt={`Logo do ${siteConfig.name}`}
             class="hero__logo"
             width="220"
             height="220"
@@ -106,14 +106,14 @@ const ogImage = siteConfig.image;
       </footer>
     </main>
 
-    <script
-      type="application/json"
-      is:inline
-      id="marinheiros-translations"
-      set:html={translationsPayload}
-    ></script>
+      <script
+        type="application/json"
+        is:inline
+        id="galley-ops-translations"
+        set:html={translationsPayload}
+      ></script>
     <script type="module" is:inline>
-      const translationsEl = document.getElementById('marinheiros-translations');
+        const translationsEl = document.getElementById('galley-ops-translations');
       let translations = {};
       try {
         translations = translationsEl ? JSON.parse(translationsEl.textContent) : {};
@@ -168,7 +168,7 @@ const ogImage = siteConfig.image;
 
       const readStoredLanguage = () => {
         try {
-          return localStorage.getItem('marinheiros:lang');
+          return localStorage.getItem('galley-ops:lang');
         } catch (error) {
           return null;
         }
@@ -176,7 +176,7 @@ const ogImage = siteConfig.image;
 
       const writeStoredLanguage = (lang) => {
         try {
-          localStorage.setItem('marinheiros:lang', lang);
+          localStorage.setItem('galley-ops:lang', lang);
         } catch (error) {
           /* ignore */
         }

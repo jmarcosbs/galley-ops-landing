@@ -1,11 +1,8 @@
 ---
 import '../styles/global.css';
-import {
-  languages,
-  defaultLanguage,
-  languageNames,
-} from '../data/i18n';
+import { languages, defaultLanguage, languageNames } from '../data/i18n';
 import { siteConfig, buildMenuSchema } from '../data/site';
+import { brandMenu } from '../data/brand';
 
 const menuEndpoint =
   import.meta.env.PUBLIC_MENU_API ?? 'http://localhost:8002/api/menu/';
@@ -15,14 +12,9 @@ const heroCopy = {
   title: defaultCopy.menuHeroTitle,
 };
 const canonicalUrl = siteConfig.siteSections.menu;
-const menuMetaTitle = "Cardápio digital | Restaurante Marinheiro's em Florianópolis";
-const menuMetaDescription =
-  'Navegue pelo menu atualizado do Restaurante Marinheiro’s com pratos autorais, frutos do mar e bebidas especiais direto da Praia Brava.';
-const menuKeywords = [
-  'cardapio restaurante marinheiros',
-  'menu praia brava',
-  'restaurante frutos do mar florianopolis',
-].join(', ');
+const menuMetaTitle = `Cardápio digital | ${siteConfig.name}`;
+const menuMetaDescription = brandMenu.metaDescription;
+const menuKeywords = brandMenu.keywords.join(', ');
 const robotsContent =
   'index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1';
 const structuredData = JSON.stringify(buildMenuSchema());
@@ -149,12 +141,12 @@ const ogImage = siteConfig.image;
     <script
       type="application/json"
       is:inline
-      id="marinheiros-translations"
+      id="galley-ops-translations"
       set:html={translationsPayload}
     ></script>
 
     <script type="module" is:inline>
-      const translationsEl = document.getElementById('marinheiros-translations');
+      const translationsEl = document.getElementById('galley-ops-translations');
       let translations = {};
       try {
         translations = translationsEl ? JSON.parse(translationsEl.textContent) : {};
@@ -180,7 +172,7 @@ const ogImage = siteConfig.image;
 
       const readStoredLanguage = () => {
         try {
-          return localStorage.getItem('marinheiros:lang');
+          return localStorage.getItem('galley-ops:lang');
         } catch (error) {
           return null;
         }
@@ -188,7 +180,7 @@ const ogImage = siteConfig.image;
 
       const writeStoredLanguage = (lang) => {
         try {
-          localStorage.setItem('marinheiros:lang', lang);
+          localStorage.setItem('galley-ops:lang', lang);
         } catch (error) {
           /* ignore */
         }

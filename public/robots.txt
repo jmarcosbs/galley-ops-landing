@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://restaurantemarinheiros.com.br/sitemap-index.xml
+Sitemap: https://example.galleyops.com/sitemap-index.xml

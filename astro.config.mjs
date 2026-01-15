@@ -1,7 +1,7 @@
 import { defineConfig } from 'astro/config';
 import sitemap from '@astrojs/sitemap';
 
-const SITE_URL = (process.env.PUBLIC_SITE_URL ?? 'https://restaurantemarinheiros.com.br').replace(/\/$/, '');
+const SITE_URL = (process.env.PUBLIC_SITE_URL ?? 'https://example.galleyops.com').replace(/\/$/, '');
 
 export default defineConfig({
   srcDir: './src',
